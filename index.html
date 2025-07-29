@@ -7,7 +7,40 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
-    
+
+ <style>
+    /* 优化后的整齐水印样式 */
+    .watermark-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100; /* 降低z-index确保在内容下方 */
+      background: transparent;
+      overflow: hidden;
+    }
+ .watermark-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      width: 100%;
+      height: 100%;
+    }
+    .watermark-item {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: rgba(0, 0, 0, 0.08);
+      font-size: 20px;
+      font-weight: bold;
+      transform: rotate(-30deg);
+      pointer-events: none;
+      user-select: none;
+      opacity: 0.8;
+    }
+  </style>  
     <script>
         tailwind.config = {
             theme: {
@@ -57,6 +90,11 @@
     </style>
 </head>
 <body class="bg-gradient-to-br from-neutral-light to-white min-h-screen font-inter text-neutral">
+ <!-- 水印层 - 使用网格布局确保整齐 -->
+  <div class="watermark-overlay" id="watermarkOverlay">
+    <div class="watermark-grid" id="watermarkGrid"></div>
+  </div>
+  <div class="min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-6xl">
         <header class="text-center mb-12">
             <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-4">
@@ -66,7 +104,7 @@
                 通过标准化问卷判定体质类型，提供个性化调理方案
             </p>
         </header>
-
+   
         <main class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <!-- 左侧：问卷输入区 -->
             <div class="lg:col-span-7 bg-white rounded-2xl p-6 card-shadow">
@@ -2341,6 +2379,32 @@
 <script>
 // 极简可靠版本 - 添加转化分计算和性别切换功能
 document.addEventListener('DOMContentLoaded', function() {
+     // ==== 整齐排列的水印生成函数 ====
+      function generateWatermark() {
+        const grid = document.getElementById('watermarkGrid');
+        if (!grid) return;
+        
+        // 清除旧水印
+        grid.innerHTML = '';
+        
+        // 网格布局的行列数
+        const rows = 5;
+        const cols = 5;
+// 创建网格布局的水印
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const watermark = document.createElement('div');
+            watermark.className = 'watermark-item';
+            watermark.textContent = '济南市中心医院';
+            watermark.style.gridColumn = `${col + 1}`;
+            watermark.style.gridRow = `${row + 1}`;
+            grid.appendChild(watermark);
+          }
+        }
+      }
+      generateWatermark();
+      window.addEventListener('resize', generateWatermark);
+      
   // 1. 添加湿热质性别切换功能
   const genderRadios = document.querySelectorAll('input[name="gender"]');
   if (genderRadios.length > 0) {
