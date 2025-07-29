@@ -40,6 +40,92 @@
       user-select: none;
       opacity: 0.8;
     }
+/* === 新增的密码区域样式 === */
+#passwordSection {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.password-container {
+  max-width: 400px;
+  width: 90%;
+  padding: 2rem;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.password-container h2 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  color: #1e40af;
+}
+
+#passwordInput {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  transition: border-color 0.3s;
+}
+
+#passwordInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+#passwordSubmitBtn {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+#passwordSubmitBtn:hover {
+  background-color: #2563eb;
+}
+
+#passwordError {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  display: none;
+}
+
+/* 抖动动画 */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* 如果还没有.hidden类，添加这个 */
+.hidden {
+  display: none !important;
+}
   </style>  
     <script>
         tailwind.config = {
@@ -2272,7 +2358,28 @@
 </button>
 </form>
 </div>
-
+<!-- 密码验证区域 -->
+<div id="passwordSection" class="hidden">
+  <div class="password-container">
+    <h2 class="text-2xl font-bold text-center mb-6">查看结果需验证密码</h2>
+    <div class="mb-4">
+      <label for="passwordInput" class="block text-gray-700 mb-2">请输入密码：</label>
+      <input 
+        type="password" 
+        id="passwordInput" 
+        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        placeholder="请输入密码"
+      >
+      <div id="passwordError" class="hidden text-red-500 mt-2">密码错误，请重新输入</div>
+    </div>
+    <button 
+      id="passwordSubmitBtn" 
+      class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200"
+    >
+      验证密码
+    </button>
+  </div>
+</div>
 <!-- 右侧：结果展示区 -->
 <div class="lg:col-span-5 space-y-6">
   <!-- 初始提示 -->
@@ -2376,10 +2483,14 @@
 </main>
 </div>
 
-<script>
-// 极简可靠版本 - 添加转化分计算和性别切换功能
-document.addEventListener('DOMContentLoaded', function() {
-     // ==== 整齐排列的水印生成函数 ====
+  <script>
+    // 极简可靠版本 - 添加转化分计算和性别切换功能
+    document.addEventListener('DOMContentLoaded', function() {
+      // 存储用户名和结果数据
+      let storedName = '';
+      let storedResults = null;
+      
+      // ==== 整齐排列的水印生成函数 ====
       function generateWatermark() {
         const grid = document.getElementById('watermarkGrid');
         if (!grid) return;
@@ -2390,7 +2501,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 网格布局的行列数
         const rows = 5;
         const cols = 5;
-// 创建网格布局的水印
+ // 创建网格布局的水印
         for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
             const watermark = document.createElement('div');
@@ -2402,59 +2513,110 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }
       }
+    // 初始生成水印
       generateWatermark();
       window.addEventListener('resize', generateWatermark);
-      
-  // 1. 添加湿热质性别切换功能
-  const genderRadios = document.querySelectorAll('input[name="gender"]');
-  if (genderRadios.length > 0) {
-    genderRadios.forEach(radio => {
-      radio.addEventListener('change', function() {
-        const label = document.getElementById('shire_6_label');
-        if (label) {
-          if (this.value === 'male') {
-            label.textContent = '您的阴囊部位潮湿吗？（限男性回答）';
-          } else {
-            label.textContent = '您带下色黄（白带颜色发黄）吗？（限女性回答）';
+// 将水印容器提升到body下，使其始终可见
+      const watermarkOverlay = document.querySelector('.watermark-overlay');
+      if (watermarkOverlay) {
+        document.body.appendChild(watermarkOverlay);
+      }
+        // 1. 添加湿热质性别切换功能
+      const genderRadios = document.querySelectorAll('input[name="gender"]');
+      if (genderRadios.length > 0) {
+        genderRadios.forEach(radio => {
+          radio.addEventListener('change', function() {
+            const label = document.getElementById('shire_6_label');
+            if (label) {
+              if (this.value === 'male') {
+                label.textContent = '您的阴囊部位潮湿吗？（限男性回答）';
+              } else {
+                label.textContent = '您带下色黄（白带颜色发黄）吗？（限女性回答）';
+              }
+            }
+          }); 
+// 初始化时设置正确的标签
+          if (radio.checked) {
+            radio.dispatchEvent(new Event('change'));
           }
+        });
+      } else {
+        console.warn("未找到性别选择按钮");
+      }
+      
+      // 提交按钮点击事件
+      const submitBtn = document.getElementById('submitBtn');
+      
+      if (submitBtn) {
+        submitBtn.addEventListener('click', function() {
+          // 1. 验证表单
+          if (!validateForm()) {
+            alert('请完成所有问题后再提交');
+            return;
+          }
+          
+    // 2. 获取用户名
+          const nameInput = document.querySelector('input[name="name"]');
+          const name = nameInput ? nameInput.value || '匿名用户' : '匿名用户';
+          
+          // 3. 计算得分
+          const results = calculateConstitutionScores();
+          
+          // 存储结果
+          storedName = name;
+          storedResults = results;
+          
+          // 显示密码输入界面
+          document.getElementById('passwordSection').classList.remove('hidden');
+          document.getElementById('questionnaireForm').classList.add('hidden');
+          document.getElementById('passwordInput').focus();
+        });
+      } else {
+console.error("未找到提交按钮");
+        alert("系统错误：未找到提交按钮");
+      }
+      
+      // 密码验证函数
+      function verifyPassword() {
+        const passwordInput = document.getElementById('passwordInput');
+        const passwordError = document.getElementById('passwordError');
+        
+        // 正确密码：JNSZXYY
+        if (passwordInput.value === 'JNSZXYY') {
+          // 密码正确，显示结果
+          passwordError.classList.add('hidden');
+          showResults(storedName, storedResults);
+// 隐藏密码界面，显示结果
+          document.getElementById('passwordSection').classList.add('hidden');
+          document.getElementById('resultSection').classList.remove('hidden');
+        } else {
+          // 密码错误处理
+          passwordError.classList.remove('hidden');
+          passwordInput.value = '';
+          passwordInput.focus();
+          
+          // 添加抖动效果
+          passwordInput.classList.add('animate-shake');
+          setTimeout(() => {
+            passwordInput.classList.remove('animate-shake');
+          }, 500);
         }
-      });
-      
-      // 初始化时设置正确的标签
-      if (radio.checked) {
-        radio.dispatchEvent(new Event('change'));
-      }
-    });
-  } else {
-    console.warn("未找到性别选择按钮");
-  }
-
-  // 提交按钮点击事件
-  const submitBtn = document.getElementById('submitBtn');
-  
-  if (submitBtn) {
-    submitBtn.addEventListener('click', function() {
-      // 1. 验证表单
-      if (!validateForm()) {
-        alert('请完成所有问题后再提交');
-        return;
+      }    
+    // 为密码提交按钮添加事件监听
+      const passwordSubmitBtn = document.getElementById('passwordSubmitBtn');
+      if (passwordSubmitBtn) {
+        passwordSubmitBtn.addEventListener('click', verifyPassword);
       }
       
-      // 2. 获取用户名
-      const nameInput = document.querySelector('input[name="name"]');
-      const name = nameInput ? nameInput.value || '匿名用户' : '匿名用户';
-      
-      // 3. 计算得分
-      const results = calculateConstitutionScores();
-      
-      // 4. 显示结果
-      showResults(name, results);
-    });
-  } else {
-    console.error("未找到提交按钮");
-    alert("系统错误：未找到提交按钮");
-  }
-
+      // 为密码输入框添加回车键支持
+      const passwordInput = document.getElementById('passwordInput');
+      if (passwordInput) {
+        passwordInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            verifyPassword();
+          }
+        });
+      }
   // 验证表单完整性
   function validateForm() {
     // 体质类型列表
