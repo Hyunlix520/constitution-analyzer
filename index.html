@@ -1,0 +1,2701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中医体质分类小程序</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#8B5CF6',
+                        neutral: '#1F2937',
+                        'neutral-light': '#F3F4F6',
+                        'scale-1': '#EF4444', // 没有
+                        'scale-2': '#F97316', // 很少
+                        'scale-3': '#FBBF24', // 有时
+                        'scale-4': '#10B981', // 经常
+                        'scale-5': '#3B82F6', // 总是
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto { content-visibility: auto; }
+            .card-shadow { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+            .input-focus { @apply focus:ring-2 focus:ring-primary/50 focus:border-primary; }
+            .scale-item { @apply relative flex-1 cursor-pointer transition-all duration-300 py-2; }
+            .scale-item input { @apply absolute opacity-0; }
+            .scale-item label { @apply block text-center rounded-lg py-2 px-1 text-sm font-medium transition-all duration-300 border border-gray-200; }
+            .scale-item input:checked + label { @apply font-bold; }
+            .scale-item-1 input:checked + label { @apply bg-scale-1/10 text-scale-1 border-scale-1; }
+            .scale-item-2 input:checked + label { @apply bg-scale-2/10 text-scale-2 border-scale-2; }
+            .scale-item-3 input:checked + label { @apply bg-scale-3/10 text-scale-3 border-scale-3; }
+            .scale-item-4 input:checked + label { @apply bg-scale-4/10 text-scale-4 border-scale-4; }
+            .scale-item-5 input:checked + label { @apply bg-scale-5/10 text-scale-5 border-scale-5; }
+            .scale-label { @apply text-xs text-gray-500 text-center mt-1; }
+            .herb-card { @apply bg-white rounded-xl p-4 shadow-md border border-gray-100 mb-4; }
+            .herb-title { @apply text-lg font-semibold mb-2 flex items-center; }
+            .herb-icon { @apply w-8 h-8 rounded-full flex items-center justify-center mr-2; }
+            .herb-list { @apply grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm; }
+            .herb-item { @apply flex items-center; }
+            .herb-name { @apply font-medium mr-1; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-neutral-light to-white min-h-screen font-inter text-neutral">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <header class="text-center mb-12">
+            <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-4">
+                中医体质分类小程序
+            </h1>
+            <p class="text-lg text-neutral/70 max-w-2xl mx-auto">
+                通过标准化问卷判定体质类型，提供个性化调理方案
+            </p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- 左侧：问卷输入区 -->
+            <div class="lg:col-span-7 bg-white rounded-2xl p-6 card-shadow">
+                <h2 class="text-2xl font-bold mb-6 border-b pb-4">
+                    <i class="fa fa-list-alt text-primary mr-2"></i>体质问卷
+                </h2>
+                
+                <form id="constitutionForm" class="space-y-8">
+                    <!-- 个人信息 -->
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-semibold text-primary">个人信息</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium">姓名</label>
+                                <input type="text" name="name" class="w-full px-4 py-2 rounded-lg border input-focus" placeholder="请输入您的姓名">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium">性别</label>
+                                <div class="flex space-x-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="gender" value="male" class="form-radio text-primary" checked>
+                                        <span class="ml-2">男</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="gender" value="female" class="form-radio text-primary">
+                                        <span class="ml-2">女</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+<!-- 1. 平和质（8个问题） -->
+    <div class="space-y-4">
+        <h3 class="text-xl font-semibold text-primary">平和质</h3>
+        <div class="pl-4 border-l-2 border-primary/30 space-y-6">
+            <div>
+                <label class="block text-sm font-medium mb-2">1. 您精力充沛吗？</label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="pinghe_1_1" name="pinghe_1" value="1">
+                        <label for="pinghe_1_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="pinghe_1_2" name="pinghe_1" value="2">
+                        <label for="pinghe_1_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="pinghe_1_3" name="pinghe_1" value="3">
+                        <label for="pinghe_1_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="pinghe_1_4" name="pinghe_1" value="4">
+                        <label for="pinghe_1_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="pinghe_1_5" name="pinghe_1" value="5">
+                        <label for="pinghe_1_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">2. 您容易疲乏吗？<span class="text-red-500 text-xs">(逆向计分)</span></label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="pinghe_2_1" name="pinghe_2" value="5"> <!-- 逆向计分 -->
+                        <label for="pinghe_2_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="pinghe_2_2" name="pinghe_2" value="4"> <!-- 逆向计分 -->
+                        <label for="pinghe_2_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="pinghe_2_3" name="pinghe_2" value="3"> <!-- 逆向计分 -->
+                        <label for="pinghe_2_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="pinghe_2_4" name="pinghe_2" value="2"> <!-- 逆向计分 -->
+                        <label for="pinghe_2_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="pinghe_2_5" name="pinghe_2" value="1"> <!-- 逆向计分 -->
+                        <label for="pinghe_2_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">3. 您说话声音低弱无力吗？<span class="text-red-500 text-xs">(逆向计分)</span></label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="pinghe_3_1" name="pinghe_3" value="5">
+                        <label for="pinghe_3_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="pinghe_3_2" name="pinghe_3" value="4">
+                        <label for="pinghe_3_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="pinghe_3_3" name="pinghe_3" value="3">
+                        <label for="pinghe_3_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="pinghe_3_4" name="pinghe_3" value="2">
+                        <label for="pinghe_3_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="pinghe_3_5" name="pinghe_3" value="1">
+                        <label for="pinghe_3_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">4. 您感到闷闷不乐、情绪低沉吗？<span class="text-red-500 text-xs">(逆向计分)</span></label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="pinghe_4_1" name="pinghe_4" value="5">
+                        <label for="pinghe_4_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="pinghe_4_2" name="pinghe_4" value="4">
+                        <label for="pinghe_4_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="pinghe_4_3" name="pinghe_4" value="3">
+                        <label for="pinghe_4_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="pinghe_4_4" name="pinghe_4" value="2">
+                        <label for="pinghe_4_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="pinghe_4_5" name="pinghe_4" value="1">
+                        <label for="pinghe_4_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">5. 您比一般人耐受不了寒冷（冬天的寒冷，夏天的冷空调、电扇等）吗？<span class="text-red-500 text-xs">(逆向计分)</span></label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="pinghe_5_1" name="pinghe_5" value="5">
+                        <label for="pinghe_5_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="pinghe_5_2" name="pinghe_5" value="4">
+                        <label for="pinghe_5_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="pinghe_5_3" name="pinghe_5" value="3">
+                        <label for="pinghe_5_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="pinghe_5_4" name="pinghe_5" value="2">
+                        <label for="pinghe_5_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="pinghe_5_5" name="pinghe_5" value="1">
+                        <label for="pinghe_5_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">6. 您容易失眠吗？<span class="text-red-500 text-xs">(逆向计分)</span></label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="pinghe_6_1" name="pinghe_6" value="5">
+                        <label for="pinghe_6_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="pinghe_6_2" name="pinghe_6" value="4">
+                        <label for="pinghe_6_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="pinghe_6_3" name="pinghe_6" value="3">
+                        <label for="pinghe_6_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="pinghe_6_4" name="pinghe_6" value="2">
+                        <label for="pinghe_6_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="pinghe_6_5" name="pinghe_6" value="1">
+                        <label for="pinghe_6_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">7. 您容易忘事（健忘）吗？<span class="text-red-500 text-xs">(逆向计分)</span></label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="pinghe_7_1" name="pinghe_7" value="5">
+                        <label for="pinghe_7_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="pinghe_7_2" name="pinghe_7" value="4">
+                        <label for="pinghe_7_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="pinghe_7_3" name="pinghe_7" value="3">
+                        <label for="pinghe_7_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="pinghe_7_4" name="pinghe_7" value="2">
+                        <label for="pinghe_7_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="pinghe_7_5" name="pinghe_7" value="1">
+                        <label for="pinghe_7_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">8. 您能适应外界自然和社会环境变化吗？</label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="pinghe_8_1" name="pinghe_8" value="1">
+                        <label for="pinghe_8_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="pinghe_8_2" name="pinghe_8" value="2">
+                        <label for="pinghe_8_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="pinghe_8_3" name="pinghe_8" value="3">
+                        <label for="pinghe_8_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="pinghe_8_4" name="pinghe_8" value="4">
+                        <label for="pinghe_8_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="pinghe_8_5" name="pinghe_8" value="5">
+                        <label for="pinghe_8_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- 2. 气虚质（8个问题） -->
+    <div class="space-y-4">
+        <h3 class="text-xl font-semibold text-secondary">气虚质</h3>
+        <div class="pl-4 border-l-2 border-secondary/30 space-y-6">
+            <div>
+                <label class="block text-sm font-medium mb-2">1. 您容易疲乏吗？</label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="qixu_1_1" name="qixu_1" value="1">
+                        <label for="qixu_1_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="qixu_1_2" name="qixu_1" value="2">
+                        <label for="qixu_1_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="qixu_1_3" name="qixu_1" value="3">
+                        <label for="qixu_1_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="qixu_1_4" name="qixu_1" value="4">
+                        <label for="qixu_1_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="qixu_1_5" name="qixu_1" value="5">
+                        <label for="qixu_1_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">2. 您容易气短，呼吸短促，接不上气吗？</label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="qixu_2_1" name="qixu_2" value="1">
+                        <label for="qixu_2_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="qixu_2_2" name="qixu_2" value="2">
+                        <label for="qixu_2_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="qixu_2_3" name="qixu_2" value="3">
+                        <label for="qixu_2_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="qixu_2_4" name="qixu_2" value="4">
+                        <label for="qixu_2_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="qixu_2_5" name="qixu_2" value="5">
+                        <label for="qixu_2_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">3. 您容易心慌吗？</label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="qixu_3_1" name="qixu_3" value="1">
+                        <label for="qixu_3_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="qixu_3_2" name="qixu_3" value="2">
+                        <label for="qixu_3_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="qixu_3_3" name="qixu_3" value="3">
+                        <label for="qixu_3_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="qixu_3_4" name="qixu_3" value="4">
+                        <label for="qixu_3_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="qixu_3_5" name="qixu_3" value="5">
+                        <label for="qixu_3_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">4. 您容易头晕或站起时晕眩吗？</label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="qixu_4_1" name="qixu_4" value="1">
+                        <label for="qixu_4_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="qixu_4_2" name="qixu_4" value="2">
+                        <label for="qixu_4_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="qixu_4_3" name="qixu_4" value="3">
+                        <label for="qixu_4_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="qixu_4_4" name="qixu_4" value="4">
+                        <label for="qixu_4_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="qixu_4_5" name="qixu_4" value="5">
+                        <label for="qixu_4_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">5. 您比别人容易患感冒吗？</label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="qixu_5_1" name="qixu_5" value="1">
+                        <label for="qixu_5_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="qixu_5_2" name="qixu_5" value="2">
+                        <label for="qixu_5_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="qixu_5_3" name="qixu_5" value="3">
+                        <label for="qixu_5_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="qixu_5_4" name="qixu_5" value="4">
+                        <label for="qixu_5_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="qixu_5_5" name="qixu_5" value="5">
+                        <label for="qixu_5_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">6. 您说话声音低弱无力吗？</label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="qixu_6_1" name="qixu_6" value="1">
+                        <label for="qixu_6_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="qixu_6_2" name="qixu_6" value="2">
+                        <label for="qixu_6_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="qixu_6_3" name="qixu_6" value="3">
+                        <label for="qixu_6_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="qixu_6_4" name="qixu_6" value="4">
+                        <label for="qixu_6_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="qixu_6_5" name="qixu_6" value="5">
+                        <label for="qixu_6_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-2">7. 您喜欢安静、懒得说话吗？</label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="qixu_7_1" name="qixu_7" value="1">
+                        <label for="qixu_2_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="qixu_7_2" name="qixu_7" value="2">
+                        <label for="qixu_7_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="qixu_7_3" name="qixu_7" value="3">
+                        <label for="qixu_7_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="qixu_7_4" name="qixu_7" value="4">
+                        <label for="qixu_7_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="qixu_7_5" name="qixu_7" value="5">
+                        <label for="qixu_7_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+          
+            <div>
+                <label class="block text-sm font-medium mb-2">8. 您容易出虚汗吗？</label>
+                <div class="flex justify-between scale-container">
+                    <div class="scale-item scale-item-1">
+                        <input type="radio" id="qixu_8_1" name="qixu_8" value="1">
+                        <label for="qixu_8_1">没有</label>
+                        <div class="scale-label">1</div>
+                    </div>
+                    <div class="scale-item scale-item-2">
+                        <input type="radio" id="qixu_8_2" name="qixu_8" value="2">
+                        <label for="qixu_8_2">很少</label>
+                        <div class="scale-label">2</div>
+                    </div>
+                    <div class="scale-item scale-item-3">
+                        <input type="radio" id="qixu_8_3" name="qixu_8" value="3">
+                        <label for="qixu_8_3">有时</label>
+                        <div class="scale-label">3</div>
+                    </div>
+                    <div class="scale-item scale-item-4">
+                        <input type="radio" id="qixu_8_4" name="qixu_8" value="4">
+                        <label for="qixu_8_4">经常</label>
+                        <div class="scale-label">4</div>
+                    </div>
+                    <div class="scale-item scale-item-5">
+                        <input type="radio" id="qixu_8_5" name="qixu_8" value="5">
+                        <label for="qixu_8_5">总是</label>
+                        <div class="scale-label">5</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- 3. 阳虚质（7个问题） -->
+<div class="space-y-4">
+    <h3 class="text-xl font-semibold text-blue-600">阳虚质</h3>
+    <div class="pl-4 border-l-2 border-blue-200 space-y-6">
+        <div>
+            <label class="block text-sm font-medium mb-2">1. 您手脚发凉吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yangxu_1_1" name="yangxu_1" value="1">
+                    <label for="yangxu_1_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yangxu_1_2" name="yangxu_1" value="2">
+                    <label for="yangxu_1_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yangxu_1_3" name="yangxu_1" value="3">
+                    <label for="yangxu_1_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yangxu_1_4" name="yangxu_1" value="4">
+                    <label for="yangxu_1_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yangxu_1_5" name="yangxu_1" value="5">
+                    <label for="yangxu_1_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">2. 您胃脘部、背部或腰膝部怕冷吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yangxu_2_1" name="yangxu_2" value="1">
+                    <label for="yangxu_2_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yangxu_2_2" name="yangxu_2" value="2">
+                    <label for="yangxu_2_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yangxu_2_3" name="yangxu_2" value="3">
+                    <label for="yangxu_2_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yangxu_2_4" name="yangxu_2" value="4">
+                    <label for="yangxu_2_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yangxu_2_5" name="yangxu_2" value="5">
+                    <label for="yangxu_2_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">3. 您感到怕冷、衣服比别人穿得多吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yangxu_3_1" name="yangxu_3" value="1">
+                    <label for="yangxu_3_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yangxu_3_2" name="yangxu_3" value="2">
+                    <label for="yangxu_3_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yangxu_3_3" name="yangxu_3" value="3">
+                    <label for="yangxu_3_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yangxu_3_4" name="yangxu_3" value="4">
+                    <label for="yangxu_3_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yangxu_3_5" name="yangxu_3" value="5">
+                    <label for="yangxu_3_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">4. 您比一般人耐受不了寒冷（冬天的寒冷，夏天的冷空调、电扇等）吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yangxu_4_1" name="yangxu_4" value="1">
+                    <label for="yangxu_4_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yangxu_4_2" name="yangxu_4" value="2">
+                    <label for="yangxu_4_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yangxu_4_3" name="yangxu_4" value="3">
+                    <label for="yangxu_4_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yangxu_4_4" name="yangxu_4" value="4">
+                    <label for="yangxu_4_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yangxu_4_5" name="yangxu_4" value="5">
+                    <label for="yangxu_4_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">5. 您吃（喝）凉的东西会感到不舒服或者怕吃（喝）凉东西吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yangxu_5_1" name="yangxu_5" value="1">
+                    <label for="yangxu_5_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yangxu_5_2" name="yangxu_5" value="2">
+                    <label for="yangxu_5_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yangxu_5_3" name="yangxu_5" value="3">
+                    <label for="yangxu_5_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yangxu_5_4" name="yangxu_5" value="4">
+                    <label for="yangxu_5_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yangxu_5_5" name="yangxu_5" value="5">
+                    <label for="yangxu_5_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">6. 您受凉或吃（喝）凉的东西后，容易腹泻（拉肚子）吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yangxu_6_1" name="yangxu_6" value="1">
+                    <label for="yangxu_6_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yangxu_6_2" name="yangxu_6" value="2">
+                    <label for="yangxu_6_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yangxu_6_3" name="yangxu_6" value="3">
+                    <label for="yangxu_6_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yangxu_6_4" name="yangxu_6" value="4">
+                    <label for="yangxu_6_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yangxu_6_5" name="yangxu_6" value="5">
+                    <label for="yangxu_6_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">7. 您比别人更容易患感冒吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yangxu_7_1" name="yangxu_7" value="1">
+                    <label for="yangxu_7_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yangxu_7_2" name="yangxu_7" value="2">
+                    <label for="yangxu_7_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yangxu_7_3" name="yangxu_7" value="3">
+                    <label for="yangxu_7_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yangxu_7_4" name="yangxu_7" value="4">
+                    <label for="yangxu_7_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yangxu_7_5" name="yangxu_7" value="5">
+                    <label for="yangxu_7_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. 阴虚质（8个问题） -->
+<div class="space-y-4">
+    <h3 class="text-xl font-semibold text-red-500">阴虚质</h3>
+    <div class="pl-4 border-l-2 border-red-200 space-y-6">
+        <div>
+            <label class="block text-sm font-medium mb-2">1. 您感到手脚心发热吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yinxu_1_1" name="yinxu_1" value="1">
+                    <label for="yinxu_1_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yinxu_1_2" name="yinxu_1" value="2">
+                    <label for="yinxu_1_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yinxu_1_3" name="yinxu_1" value="3">
+                    <label for="yinxu_1_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yinxu_1_4" name="yinxu_1" value="4">
+                    <label for="yinxu_1_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yinxu_1_5" name="yinxu_1" value="5">
+                    <label for="yinxu_1_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">2. 您感觉身体、脸上发热吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yinxu_2_1" name="yinxu_2" value="1">
+                    <label for="yinxu_2_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yinxu_2_2" name="yinxu_2" value="2">
+                    <label for="yinxu_2_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yinxu_2_3" name="yinxu_2" value="3">
+                    <label for="yinxu_2_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yinxu_2_4" name="yinxu_2" value="4">
+                    <label for="yinxu_2_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yinxu_2_5" name="yinxu_2" value="5">
+                    <label for="yinxu_2_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">3. 您皮肤或口唇干吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yinxu_3_1" name="yinxu_3" value="1">
+                    <label for="yinxu_3_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yinxu_3_2" name="yinxu_3" value="2">
+                    <label for="yinxu_3_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yinxu_3_3" name="yinxu_3" value="3">
+                    <label for="yinxu_3_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yinxu_3_4" name="yinxu_3" value="4">
+                    <label for="yinxu_3_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yinxu_3_5" name="yinxu_3" value="5">
+                    <label for="yinxu_3_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">4. 您口唇的颜色比一般人红吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yinxu_4_1" name="yinxu_4" value="1">
+                    <label for="yinxu_4_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yinxu_4_2" name="yinxu_4" value="2">
+                    <label for="yinxu_4_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yinxu_4_3" name="yinxu_4" value="3">
+                    <label for="yinxu_4_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yinxu_4_4" name="yinxu_4" value="4">
+                    <label for="yinxu_4_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yinxu_4_5" name="yinxu_4" value="5">
+                    <label for="yinxu_4_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">5. 您容易便秘或大便干燥吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yinxu_5_1" name="yinxu_5" value="1">
+                    <label for="yinxu_5_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yinxu_5_2" name="yinxu_5" value="2">
+                    <label for="yinxu_5_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yinxu_5_3" name="yinxu_5" value="3">
+                    <label for="yinxu_5_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yinxu_5_4" name="yinxu_5" value="4">
+                    <label for="yinxu_5_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yinxu_5_5" name="yinxu_5" value="5">
+                    <label for="yinxu_5_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">6. 您的眼睛干涩吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yinxu_6_1" name="yinxu_6" value="1">
+                    <label for="yinxu_6_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yinxu_6_2" name="yinxu_6" value="2">
+                    <label for="yinxu_6_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yinxu_6_3" name="yinxu_6" value="3">
+                    <label for="yinxu_6_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yinxu_6_4" name="yinxu_6" value="4">
+                    <label for="yinxu_6_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yinxu_6_5" name="yinxu_6" value="5">
+                    <label for="yinxu_6_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+         <div>
+            <label class="block text-sm font-medium mb-2">7. 您面部两颧潮红或偏红吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yinxu_7_1" name="yinxu_7" value="1">
+                    <label for="yinxu_7_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yinxu_7_2" name="yinxu_7" value="2">
+                    <label for="yinxu_7_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yinxu_7_3" name="yinxu_7" value="3">
+                    <label for="yinxu_7_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yinxu_7_4" name="yinxu_7" value="4">
+                    <label for="yinxu_7_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yinxu_7_5" name="yinxu_7" value="5">
+                    <label for="yinxu_7_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+         <div>
+            <label class="block text-sm font-medium mb-2">8. 您感到口干咽燥、总想喝水吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="yinxu_8_1" name="yinxu_8" value="1">
+                    <label for="yinxu_8_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="yinxu_8_2" name="yinxu_8" value="2">
+                    <label for="yinxu_8_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="yinxu_8_3" name="yinxu_8" value="3">
+                    <label for="yinxu_8_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="yinxu_8_4" name="yinxu_8" value="4">
+                    <label for="yinxu_8_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="yinxu_8_5" name="yinxu_8" value="5">
+                    <label for="yinxu_8_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 5. 痰湿质（8个问题） -->
+<div class="space-y-4">
+    <h3 class="text-xl font-semibold text-amber-600">痰湿质</h3>
+    <div class="pl-4 border-l-2 border-amber-200 space-y-6">
+        <div>
+            <label class="block text-sm font-medium mb-2">1. 您感到胸闷或腹部胀满吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tanshi_1_1" name="tanshi_1" value="1">
+                    <label for="tanshi_1_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tanshi_1_2" name="tanshi_1" value="2">
+                    <label for="tanshi_1_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tanshi_1_3" name="tanshi_1" value="3">
+                    <label for="tanshi_1_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tanshi_1_4" name="tanshi_1" value="4">
+                    <label for="tanshi_1_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tanshi_1_5" name="tanshi_1" value="5">
+                    <label for="tanshi_1_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">2. 您感到身体沉重不轻松或不爽快吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tanshi_2_1" name="tanshi_2" value="1">
+                    <label for="tanshi_2_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tanshi_2_2" name="tanshi_2" value="2">
+                    <label for="tanshi_2_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tanshi_2_3" name="tanshi_2" value="3">
+                    <label for="tanshi_2_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tanshi_2_4" name="tanshi_2" value="4">
+                    <label for="tanshi_2_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tanshi_2_5" name="tanshi_2" value="5">
+                    <label for="tanshi_2_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">3. 您腹部肥满松软吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tanshi_3_1" name="tanshi_3" value="1">
+                    <label for="tanshi_3_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tanshi_3_2" name="tanshi_3" value="2">
+                    <label for="tanshi_3_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tanshi_3_3" name="tanshi_3" value="3">
+                    <label for="tanshi_3_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tanshi_3_4" name="tanshi_3" value="4">
+                    <label for="tanshi_3_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tanshi_3_5" name="tanshi_3" value="5">
+                    <label for="tanshi_3_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">4. 您有颌部油脂分泌多的现象吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tanshi_4_1" name="tanshi_4" value="1">
+                    <label for="tanshi_4_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tanshi_4_2" name="tanshi_4" value="2">
+                    <label for="tanshi_4_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tanshi_4_3" name="tanshi_4" value="3">
+                    <label for="tanshi_4_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tanshi_4_4" name="tanshi_4" value="4">
+                    <label for="tanshi_4_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tanshi_4_5" name="tanshi_4" value="5">
+                    <label for="tanshi_4_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">5. 您嘴里有黏黏的感觉吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tanshi_5_1" name="tanshi_5" value="1">
+                    <label for="tanshi_5_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tanshi_5_2" name="tanshi_5" value="2">
+                    <label for="tanshi_5_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tanshi_5_3" name="tanshi_5" value="3">
+                    <label for="tanshi_5_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tanshi_5_4" name="tanshi_5" value="4">
+                    <label for="tanshi_5_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tanshi_5_5" name="tanshi_5" value="5">
+                    <label for="tanshi_5_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">6. 您舌苔厚腻或有舌苔厚厚的感觉吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tanshi_6_1" name="tanshi_6" value="1">
+                    <label for="tanshi_6_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tanshi_6_2" name="tanshi_6" value="2">
+                    <label for="tanshi_6_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tanshi_6_3" name="tanshi_6" value="3">
+                    <label for="tanshi_6_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tanshi_6_4" name="tanshi_6" value="4">
+                    <label for="tanshi_6_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tanshi_6_5" name="tanshi_6" value="5">
+                    <label for="tanshi_6_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2">7. 您平时痰多，特别是咽喉部总感到有痰堵着吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tanshi_7_1" name="tanshi_7" value="1">
+                    <label for="tanshi_7_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tanshi_7_2" name="tanshi_7" value="2">
+                    <label for="tanshi_7_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tanshi_7_3" name="tanshi_7" value="3">
+                    <label for="tanshi_7_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tanshi_7_4" name="tanshi_7" value="4">
+                    <label for="tanshi_7_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tanshi_7_5" name="tanshi_7" value="5">
+                    <label for="tanshi_7_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">8. 您上眼睑比别人肿（上眼睑有轻微隆起的现象）吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tanshi_8_1" name="tanshi_8" value="1">
+                    <label for="tanshi_8_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tanshi_8_2" name="tanshi_8" value="2">
+                    <label for="tanshi_8_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tanshi_8_3" name="tanshi_8" value="3">
+                    <label for="tanshi_8_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tanshi_8_4" name="tanshi_8" value="4">
+                    <label for="tanshi_8_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tanshi_8_5" name="tanshi_8" value="5">
+                    <label for="tanshi_8_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 6. 湿热质（7个问题） -->
+<div class="space-y-4">
+    <h3 class="text-xl font-semibold text-red-600">湿热质</h3>
+    <div class="pl-4 border-l-2 border-red-200 space-y-6">
+        <div>
+            <label class="block text-sm font-medium mb-2">1. 您面部或鼻部有油腻感或油亮发光吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="shire_1_1" name="shire_1" value="1">
+                    <label for="shire_1_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="shire_1_2" name="shire_1" value="2">
+                    <label for="shire_1_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="shire_1_3" name="shire_1" value="3">
+                    <label for="shire_1_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="shire_1_4" name="shire_1" value="4">
+                    <label for="shire_1_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="shire_1_5" name="shire_1" value="5">
+                    <label for="shire_1_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">2. 您容易生痤疮或疮疖吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="shire_2_1" name="shire_2" value="1">
+                    <label for="shire_2_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="shire_2_2" name="shire_2" value="2">
+                    <label for="shire_2_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="shire_2_3" name="shire_2" value="3">
+                    <label for="shire_2_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="shire_2_4" name="shire_2" value="4">
+                    <label for="shire_2_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="shire_2_5" name="shire_2" value="5">
+                    <label for="shire_2_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">3. 您感到口苦或嘴里有异味吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="shire_3_1" name="shire_3" value="1">
+                    <label for="shire_3_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="shire_3_2" name="shire_3" value="2">
+                    <label for="shire_3_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="shire_3_3" name="shire_3" value="3">
+                    <label for="shire_3_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="shire_3_4" name="shire_3" value="4">
+                    <label for="shire_3_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="shire_3_5" name="shire_3" value="5">
+                    <label for="shire_3_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">4. 您大便黏滞不爽或有解不尽的感觉吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="shire_4_1" name="shire_4" value="1">
+                    <label for="shire_4_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="shire_4_2" name="shire_4" value="2">
+                    <label for="shire_4_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="shire_4_3" name="shire_4" value="3">
+                    <label for="shire_4_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="shire_4_4" name="shire_4" value="4">
+                    <label for="shire_4_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="shire_4_5" name="shire_4" value="5">
+                    <label for="shire_4_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">5. 您小便时尿道有发热感或尿色偏黄吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="shire_5_1" name="shire_5" value="1">
+                    <label for="shire_5_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="shire_5_2" name="shire_5" value="2">
+                    <label for="shire_5_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="shire_5_3" name="shire_5" value="3">
+                    <label for="shire_5_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="shire_5_4" name="shire_5" value="4">
+                    <label for="shire_5_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="shire_5_5" name="shire_5" value="5">
+                    <label for="shire_5_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2" id="shire_6_label">6. 您的阴囊部位潮湿吗？（限男性回答）</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="shire_6_1" name="shire_6" value="1">
+                    <label for="shire_6_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="shire_6_2" name="shire_6" value="2">
+                    <label for="shire_6_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="shire_6_3" name="shire_6" value="3">
+                    <label for="shire_6_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="shire_6_4" name="shire_6" value="4">
+                    <label for="shire_6_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="shire_6_5" name="shire_6" value="5">
+                    <label for="shire_6_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">7. 您舌苔厚腻或有舌苔厚厚的感觉吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="shire_7_1" name="shire_7" value="1">
+                    <label for="shire_7_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="shire_7_2" name="shire_7" value="2">
+                    <label for="shire_7_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="shire_7_3" name="shire_7" value="3">
+                    <label for="shire_7_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="shire_7_4" name="shire_7" value="4">
+                    <label for="shire_7_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="shire_7_5" name="shire_7" value="5">
+                    <label for="shire_7_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 7. 血瘀质（7个问题） -->
+<div class="space-y-4">
+    <h3 class="text-xl font-semibold text-rose-600">血瘀质</h3>
+    <div class="pl-4 border-l-2 border-rose-200 space-y-6">
+        <div>
+            <label class="block text-sm font-medium mb-2">1. 您的皮肤在不知不觉中会出现青紫瘀斑（皮下出血）吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="xueyu_1_1" name="xueyu_1" value="1">
+                    <label for="xueyu_1_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="xueyu_1_2" name="xueyu_1" value="2">
+                    <label for="xueyu_1_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="xueyu_1_3" name="xueyu_1" value="3">
+                    <label for="xueyu_1_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="xueyu_1_4" name="xueyu_1" value="4">
+                    <label for="xueyu_1_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="xueyu_1_5" name="xueyu_1" value="5">
+                    <label for="xueyu_1_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">2. 您的两颧部有细微红丝或瘀斑吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="xueyu_2_1" name="xueyu_2" value="1">
+                    <label for="xueyu_2_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="xueyu_2_2" name="xueyu_2" value="2">
+                    <label for="xueyu_2_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="xueyu_2_3" name="xueyu_2" value="3">
+                    <label for="xueyu_2_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="xueyu_2_4" name="xueyu_2" value="4">
+                    <label for="xueyu_2_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="xueyu_2_5" name="xueyu_2" value="5">
+                    <label for="xueyu_2_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">3. 您身体上有哪里疼痛吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="xueyu_3_1" name="xueyu_3" value="1">
+                    <label for="xueyu_3_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="xueyu_3_2" name="xueyu_3" value="2">
+                    <label for="xueyu_3_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="xueyu_3_3" name="xueyu_3" value="3">
+                    <label for="xueyu_3_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="xueyu_3_4" name="xueyu_3" value="4">
+                    <label for="xueyu_3_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="xueyu_3_5" name="xueyu_3" value="5">
+                    <label for="xueyu_3_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">4. 您面色晦黯或容易出现褐斑吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="xueyu_4_1" name="xueyu_4" value="1">
+                    <label for="xueyu_4_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="xueyu_4_2" name="xueyu_4" value="2">
+                    <label for="xueyu_4_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="xueyu_4_3" name="xueyu_4" value="3">
+                    <label for="xueyu_4_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="xueyu_4_4" name="xueyu_4" value="4">
+                    <label for="xueyu_4_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="xueyu_4_5" name="xueyu_4" value="5">
+                    <label for="xueyu_4_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">5. 您容易有黑眼圈吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="xueyu_5_1" name="xueyu_5" value="1">
+                    <label for="xueyu_5_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="xueyu_5_2" name="xueyu_5" value="2">
+                    <label for="xueyu_5_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="xueyu_5_3" name="xueyu_5" value="3">
+                    <label for="xueyu_5_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="xueyu_5_4" name="xueyu_5" value="4">
+                    <label for="xueyu_5_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="xueyu_5_5" name="xueyu_5" value="5">
+                    <label for="xueyu_5_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">6. 您容易忘事（健忘）吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="xueyu_6_1" name="xueyu_6" value="1">
+                    <label for="xueyu_6_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="xueyu_6_2" name="xueyu_6" value="2">
+                    <label for="xueyu_6_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="xueyu_6_3" name="xueyu_6" value="3">
+                    <label for="xueyu_6_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="xueyu_6_4" name="xueyu_6" value="4">
+                    <label for="xueyu_6_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="xueyu_6_5" name="xueyu_6" value="5">
+                    <label for="xueyu_6_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">7. 您口唇颜色偏黯吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="xueyu_7_1" name="xueyu_7" value="1">
+                    <label for="xueyu_7_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="xueyu_7_2" name="xueyu_7" value="2">
+                    <label for="xueyu_7_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="xueyu_7_3" name="xueyu_7" value="3">
+                    <label for="xueyu_7_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="xueyu_7_4" name="xueyu_7" value="4">
+                    <label for="xueyu_7_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="xueyu_7_5" name="xueyu_7" value="5">
+                    <label for="xueyu_7_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 8. 气郁质（7个问题） -->
+<div class="space-y-4">
+    <h3 class="text-xl font-semibold text-indigo-600">气郁质</h3>
+    <div class="pl-4 border-l-2 border-indigo-200 space-y-6">
+        <div>
+            <label class="block text-sm font-medium mb-2">1. 您感到闷闷不乐、情绪低沉吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="qiyu_1_1" name="qiyu_1" value="1">
+                    <label for="qiyu_1_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="qiyu_1_2" name="qiyu_1" value="2">
+                    <label for="qiyu_1_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="qiyu_1_3" name="qiyu_1" value="3">
+                    <label for="qiyu_1_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="qiyu_1_4" name="qiyu_1" value="4">
+                    <label for="qiyu_1_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="qiyu_1_5" name="qiyu_1" value="5">
+                    <label for="qiyu_1_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">2. 您容易精神紧张、焦虑不安吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="qiyu_2_1" name="qiyu_2" value="1">
+                    <label for="qiyu_2_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="qiyu_2_2" name="qiyu_2" value="2">
+                    <label for="qiyu_2_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="qiyu_2_3" name="qiyu_2" value="3">
+                    <label for="qiyu_2_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="qiyu_2_4" name="qiyu_2" value="4">
+                    <label for="qiyu_2_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="qiyu_2_5" name="qiyu_2" value="5">
+                    <label for="qiyu_2_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">3. 您多愁善感、感情脆弱吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="qiyu_3_1" name="qiyu_3" value="1">
+                    <label for="qiyu_3_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="qiyu_3_2" name="qiyu_3" value="2">
+                    <label for="qiyu_3_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="qiyu_3_3" name="qiyu_3" value="3">
+                    <label for="qiyu_3_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="qiyu_3_4" name="qiyu_3" value="4">
+                    <label for="qiyu_3_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="qiyu_3_5" name="qiyu_3" value="5">
+                    <label for="qiyu_3_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">4. 您容易感到害怕或受到惊吓吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="qiyu_4_1" name="qiyu_4" value="1">
+                    <label for="qiyu_4_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="qiyu_4_2" name="qiyu_4" value="2">
+                    <label for="qiyu_4_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="qiyu_4_3" name="qiyu_4" value="3">
+                    <label for="qiyu_4_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="qiyu_4_4" name="qiyu_4" value="4">
+                    <label for="qiyu_4_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="qiyu_4_5" name="qiyu_4" value="5">
+                    <label for="qiyu_4_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">5. 您胁肋部或乳房胀痛吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="qiyu_5_1" name="qiyu_5" value="1">
+                    <label for="qiyu_5_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="qiyu_5_2" name="qiyu_5" value="2">
+                    <label for="qiyu_5_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="qiyu_5_3" name="qiyu_5" value="3">
+                    <label for="qiyu_5_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="qiyu_5_4" name="qiyu_5" value="4">
+                    <label for="qiyu_5_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="qiyu_5_5" name="qiyu_5" value="5">
+                    <label for="qiyu_5_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">6. 您无缘无故叹气吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="qiyu_6_1" name="qiyu_6" value="1">
+                    <label for="qiyu_6_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="qiyu_6_2" name="qiyu_6" value="2">
+                    <label for="qiyu_6_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="qiyu_6_3" name="qiyu_6" value="3">
+                    <label for="qiyu_6_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="qiyu_6_4" name="qiyu_6" value="4">
+                    <label for="qiyu_6_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="qiyu_6_5" name="qiyu_6" value="5">
+                    <label for="qiyu_6_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">7. 您咽喉部有异物感，且吐之不出咽之不下吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="qiyu_7_1" name="qiyu_7" value="1">
+                    <label for="qiyu_7_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="qiyu_7_2" name="qiyu_7" value="2">
+                    <label for="qiyu_7_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="qiyu_7_3" name="qiyu_7" value="3">
+                    <label for="qiyu_7_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="qiyu_7_4" name="qiyu_7" value="4">
+                    <label for="qiyu_7_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="qiyu_7_5" name="qiyu_7" value="5">
+                    <label for="qiyu_7_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 9. 特禀质（7个问题） -->
+<div class="space-y-4">
+    <h3 class="text-xl font-semibold text-teal-600">特禀质</h3>
+    <div class="pl-4 border-l-2 border-teal-200 space-y-6">
+        <div>
+            <label class="block text-sm font-medium mb-2">1. 您没有感冒也会打喷嚏吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tebing_1_1" name="tebing_1" value="1">
+                    <label for="tebing_1_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tebing_1_2" name="tebing_1" value="2">
+                    <label for="tebing_1_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tebing_1_3" name="tebing_1" value="3">
+                    <label for="tebing_1_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tebing_1_4" name="tebing_1" value="4">
+                    <label for="tebing_1_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tebing_1_5" name="tebing_1" value="5">
+                    <label for="tebing_1_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">2. 您没有感冒也会鼻塞、流鼻涕吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tebing_2_1" name="tebing_2" value="1">
+                    <label for="tebing_2_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tebing_2_2" name="tebing_2" value="2">
+                    <label for="tebing_2_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tebing_2_3" name="tebing_2" value="3">
+                    <label for="tebing_2_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tebing_2_4" name="tebing_2" value="4">
+                    <label for="tebing_2_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tebing_2_5" name="tebing_2" value="5">
+                    <label for="tebing_2_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">3. 您有因季节变化、温度变化或异味等原因而咳喘的现象吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tebing_3_1" name="tebing_3" value="1">
+                    <label for="tebing_3_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tebing_3_2" name="tebing_3" value="2">
+                    <label for="tebing_3_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tebing_3_3" name="tebing_3" value="3">
+                    <label for="tebing_3_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tebing_3_4" name="tebing_3" value="4">
+                    <label for="tebing_3_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tebing_3_5" name="tebing_3" value="5">
+                    <label for="tebing_3_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">4. 您容易过敏（对药物、食物、气味、花粉或在季节交替、气候变化时）吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tebing_4_1" name="tebing_4" value="1">
+                    <label for="tebing_4_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tebing_4_2" name="tebing_4" value="2">
+                    <label for="tebing_4_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tebing_4_3" name="tebing_4" value="3">
+                    <label for="tebing_4_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tebing_4_4" name="tebing_4" value="4">
+                    <label for="tebing_4_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tebing_4_5" name="tebing_4" value="5">
+                    <label for="tebing_4_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">5. 您的皮肤容易起荨麻疹（风团、风疹块、风疙瘩）吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tebing_5_1" name="tebing_5" value="1">
+                    <label for="tebing_5_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tebing_5_2" name="tebing_5" value="2">
+                    <label for="tebing_5_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tebing_5_3" name="tebing_5" value="3">
+                    <label for="tebing_5_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tebing_5_4" name="tebing_5" value="4">
+                    <label for="tebing_5_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tebing_5_5" name="tebing_5" value="5">
+                    <label for="tebing_5_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">6. 您的皮肤因过敏出现过紫癜（紫红色斑点）吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tebing_6_1" name="tebing_6" value="1">
+                    <label for="tebing_6_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tebing_6_2" name="tebing_6" value="2">
+                    <label for="tebing_6_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tebing_6_3" name="tebing_6" value="3">
+                    <label for="tebing_6_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tebing_6_4" name="tebing_6" value="4">
+                    <label for="tebing_6_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tebing_6_5" name="tebing_6" value="5">
+                    <label for="tebing_6_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">7. 您的皮肤一抓就红，并出现抓痕吗？</label>
+            <div class="flex justify-between scale-container">
+                <div class="scale-item scale-item-1">
+                    <input type="radio" id="tebing_7_1" name="tebing_7" value="1">
+                    <label for="tebing_7_1">没有</label>
+                    <div class="scale-label">1</div>
+                </div>
+                <div class="scale-item scale-item-2">
+                    <input type="radio" id="tebing_7_2" name="tebing_7" value="2">
+                    <label for="tebing_7_2">很少</label>
+                    <div class="scale-label">2</div>
+                </div>
+                <div class="scale-item scale-item-3">
+                    <input type="radio" id="tebing_7_3" name="tebing_7" value="3">
+                    <label for="tebing_7_3">有时</label>
+                    <div class="scale-label">3</div>
+                </div>
+                <div class="scale-item scale-item-4">
+                    <input type="radio" id="tebing_7_4" name="tebing_7" value="4">
+                    <label for="tebing_7_4">经常</label>
+                    <div class="scale-label">4</div>
+                </div>
+                <div class="scale-item scale-item-5">
+                    <input type="radio" id="tebing_7_5" name="tebing_7" value="5">
+                    <label for="tebing_7_5">总是</label>
+                    <div class="scale-label">5</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button type="button" id="submitBtn" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center">
+  <i class="fa fa-calculator mr-2"></i>计算体质得分
+</button>
+</form>
+</div>
+
+<!-- 右侧：结果展示区 -->
+<div class="lg:col-span-5 space-y-6">
+  <!-- 初始提示 -->
+  <div id="initialMessage" class="bg-white rounded-2xl p-6 card-shadow text-center">
+    <div class="text-primary text-5xl mb-4">
+      <i class="fa fa-file-medical"></i>
+    </div>
+    <h3 class="text-xl font-bold mb-2">等待分析</h3>
+    <p class="text-neutral/70">完成问卷后点击"计算体质得分"查看结果</p>
+  </div>
+
+  <!-- 结果展示（初始隐藏） -->
+  <div id="resultSection" class="hidden bg-white rounded-2xl p-6 card-shadow">
+    <h2 class="text-2xl font-bold mb-6 border-b pb-4 flex items-center">
+      <i class="fa fa-chart-pie text-primary mr-2"></i>体质分析报告
+    </h2>
+    
+    <!-- 1. 体质分型结果 -->
+    <div class="mb-8">
+      <h3 class="text-xl font-semibold mb-4 text-primary">您的体质分型为</h3>
+      <div class="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-5 border border-primary/20">
+        <div class="flex justify-between items-center mb-3">
+          <span class="font-medium">用户：</span>
+          <span id="userName" class="font-bold">匿名用户</span>
+        </div>
+        <div class="flex justify-between items-center mb-3">
+          <span class="font-medium">主要体质：</span>
+          <span id="constitutionType" class="font-bold text-xl text-primary">气虚质</span>
+        </div>
+        <p id="constitutionDesc" class="text-neutral/80 mb-4">元气不足，疲乏、气短、自汗、易感冒。</p>
+        <div class="flex justify-between items-center">
+          <span class="font-medium">体质得分：</span>
+          <span id="mainScore" class="text-primary font-bold text-lg">75.2分</span>
+        </div>
+        <div class="mt-3 pt-3 border-t border-gray-200">
+          <p class="text-sm">推荐调理方向：<span id="recommendType" class="font-semibold text-secondary">气虚质</span></p>
+          <p id="constitutionTypeGroup" class="mt-1 text-sm font-medium">您的体质属于：A型（气虚质或阳虚质）</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 2. 各体质分型得分 -->
+    <div class="mb-8">
+      <h3 class="text-xl font-semibold mb-4 text-primary">各体质分型得分</h3>
+      <div class="bg-gray-50 p-4 rounded-xl">
+        <canvas id="constitutionChart" height="300"></canvas>
+      </div>
+    </div>
+    
+    <!-- 3. 推荐应用 -->
+    <div>
+      <h3 class="text-xl font-semibold mb-4 text-primary">推荐应用</h3>
+      
+      <!-- 茶饮推荐 -->
+      <div class="herb-card">
+        <div class="herb-title">
+          <div class="herb-icon bg-green-100 text-green-600">
+            <i class="fa fa-mug-hot"></i>
+          </div>
+          <span>茶饮配方</span>
+        </div>
+        <div class="mb-3">
+          <span class="font-medium">名称：</span>
+          <span id="teaName" class="font-semibold text-secondary">补虚饮</span>
+        </div>
+        <div class="mb-2">配方组成：</div>
+        <div id="teaIngredients" class="herb-list">
+          <div class="herb-item">黄芪3g</div>
+          <div class="herb-item">党参6g</div>
+          <div class="herb-item">茯苓6g</div>
+          <div class="herb-item">炒山药6g</div>
+          <div class="herb-item">大枣2颗</div>
+        </div>
+      </div>
+      
+      <!-- 药浴推荐 -->
+      <div class="herb-card">
+        <div class="herb-title">
+          <div class="herb-icon bg-blue-100 text-blue-600">
+            <i class="fa fa-bath"></i>
+          </div>
+          <span>药浴配方</span>
+        </div>
+        <div class="mb-3">
+          <span class="font-medium">名称：</span>
+          <span id="bathName" class="font-semibold text-secondary">舒展药浴包</span>
+        </div>
+        <div class="mb-2">配方组成：</div>
+        <div id="bathIngredients" class="herb-list">
+          <div class="herb-item">黄芪9g</div>
+          <div class="herb-item">桂枝9g</div>
+          <div class="herb-item">吴茱萸9g</div>
+          <div class="herb-item">熟地9g</div>
+          <div class="herb-item">紫苏9g</div>
+          <div class="herb-item">白芍9g</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+</div>
+
+<script>
+// 极简可靠版本 - 添加转化分计算和性别切换功能
+document.addEventListener('DOMContentLoaded', function() {
+  // 1. 添加湿热质性别切换功能
+  const genderRadios = document.querySelectorAll('input[name="gender"]');
+  if (genderRadios.length > 0) {
+    genderRadios.forEach(radio => {
+      radio.addEventListener('change', function() {
+        const label = document.getElementById('shire_6_label');
+        if (label) {
+          if (this.value === 'male') {
+            label.textContent = '您的阴囊部位潮湿吗？（限男性回答）';
+          } else {
+            label.textContent = '您带下色黄（白带颜色发黄）吗？（限女性回答）';
+          }
+        }
+      });
+      
+      // 初始化时设置正确的标签
+      if (radio.checked) {
+        radio.dispatchEvent(new Event('change'));
+      }
+    });
+  } else {
+    console.warn("未找到性别选择按钮");
+  }
+
+  // 提交按钮点击事件
+  const submitBtn = document.getElementById('submitBtn');
+  
+  if (submitBtn) {
+    submitBtn.addEventListener('click', function() {
+      // 1. 验证表单
+      if (!validateForm()) {
+        alert('请完成所有问题后再提交');
+        return;
+      }
+      
+      // 2. 获取用户名
+      const nameInput = document.querySelector('input[name="name"]');
+      const name = nameInput ? nameInput.value || '匿名用户' : '匿名用户';
+      
+      // 3. 计算得分
+      const results = calculateConstitutionScores();
+      
+      // 4. 显示结果
+      showResults(name, results);
+    });
+  } else {
+    console.error("未找到提交按钮");
+    alert("系统错误：未找到提交按钮");
+  }
+
+  // 验证表单完整性
+  function validateForm() {
+    // 体质类型列表
+    const constitutions = ['pinghe', 'qixu', 'yangxu', 'yinxu', 'tanshi', 'shire', 'xueyu', 'qiyu', 'tebing'];
+    
+    // 每个体质的问题数量
+    const questionCounts = [8, 8, 7, 8, 8, 7, 7, 7, 7];
+    
+    for (let i = 0; i < constitutions.length; i++) {
+      const constitution = constitutions[i];
+      const count = questionCounts[i];
+      
+      for (let j = 1; j <= count; j++) {
+        const questionName = `${constitution}_${j}`;
+        const isAnswered = document.querySelector(`input[name="${questionName}"]:checked`);
+        
+        if (!isAnswered) {
+          // 高亮显示未回答的问题
+          const questionElement = document.querySelector(`input[name="${questionName}"]`);
+          if (questionElement) {
+            const container = questionElement.closest('.scale-container');
+            if (container) {
+              container.style.backgroundColor = '#ffebee';
+              setTimeout(() => container.style.backgroundColor = '', 3000);
+            }
+          }
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  }
+
+  // 计算体质得分 - 使用新的转化分公式
+  function calculateConstitutionScores() {
+    // 体质得分对象
+    const scores = {
+      pinghe: 0, qixu: 0, yangxu: 0, yinxu: 0,
+      tanshi: 0, shire: 0, xueyu: 0, qiyu: 0, tebing: 0
+    };
+    
+    // 各体质问题数量
+    const questionCounts = {
+      pinghe: 8, qixu: 8, yangxu: 7, yinxu: 8,
+      tanshi: 8, shire: 7, xueyu: 7, qiyu: 7, tebing: 7
+    };
+    
+    // 获取所有已回答的问题
+    const answers = document.querySelectorAll('input[type="radio"]:checked');
+    
+    // 累加分数
+    answers.forEach(answer => {
+      const nameParts = answer.name.split('_');
+      if (nameParts.length > 0) {
+        const constitution = nameParts[0];
+        const value = parseInt(answer.value);
+        
+        if (!isNaN(value) && scores.hasOwnProperty(constitution)) {
+          scores[constitution] += value;
+        }
+      }
+    });
+    
+    // 转换为转化分 (原始分 - 条目数) / (条目数×4) × 100
+    const convertedScores = {};
+    for (const constitution in scores) {
+      const entryCount = questionCounts[constitution];
+      const rawScore = scores[constitution];
+      
+      // 应用转化分公式
+      convertedScores[constitution] = ((rawScore - entryCount) / (entryCount * 4)) * 100;
+      
+      // 保留一位小数
+      convertedScores[constitution] = Math.round(convertedScores[constitution] * 10) / 10;
+      
+      // 确保分数在0-100范围内
+      if (convertedScores[constitution] < 0) convertedScores[constitution] = 0;
+      if (convertedScores[constitution] > 100) convertedScores[constitution] = 100;
+    }
+    
+    return convertedScores;
+  }
+
+  // 显示结果
+  function showResults(name, results) {
+    // 体质类型定义
+    const constitutionTypes = [
+      { id: 'pinghe', name: '平和质', color: '#3B82F6', desc: '阴阳气血调和，体态适中、面色红润、精力充沛。' },
+      { id: 'qixu', name: '气虚质', color: '#10B981', desc: '元气不足，疲乏、气短、自汗、易感冒。' },
+      { id: 'yangxu', name: '阳虚质', color: '#8B5CF6', desc: '阳气不足，畏寒怕冷、手足不温、喜热饮食。' },
+      { id: 'yinxu', name: '阴虚质', color: '#EF4444', desc: '阴液亏少，口干咽燥、手足心热、潮热盗汗。' },
+      { id: 'tanshi', name: '痰湿质', color: '#F59E0B', desc: '痰湿凝聚，体型肥胖、腹部肥满、口黏苔腻。' },
+      { id: 'shire', name: '湿热质', color: '#DC2626', desc: '湿热内蕴，面垢油光、口苦、痤疮、大便黏滞。' },
+      { id: 'xueyu', name: '血瘀质', color: '#F43F5E', desc: '血行不畅，肤色晦黯、有瘀斑、痛经。' },
+      { id: 'qiyu', name: '气郁质', color: '#6366F1', desc: '气机郁滞，情绪低落、胸闷、失眠多梦。' },
+      { id: 'tebing', name: '特禀质', color: '#06B6D4', desc: '先天失常，易过敏、鼻塞喷嚏、皮肤起风团。' }
+    ];
+
+ // 判断是否满足平和质条件
+    let isPinghe = false;
+    const pingheScore = results.pinghe || 0;
+    
+    // 平和质条件：转化分>=60 且 其他体质转化分均<40
+    if (pingheScore >= 60) {
+      const otherScores = Object.entries(results)
+        .filter(([key]) => key !== 'pinghe')
+        .map(([, value]) => value);
+      
+      isPinghe = otherScores.every(score => score < 40);
+    }
+ // 确定主体质
+    let mainType;
+    if (isPinghe) {
+      // 满足平和质条件
+      mainType = constitutionTypes.find(type => type.id === 'pinghe');
+    } else {
+      // 排除平和质，在8种偏颇体质中找最高分
+      const biasTypes = constitutionTypes.filter(type => type.id !== 'pinghe');
+      let maxScore = 0;
+      
+      for (const type of biasTypes) {
+        const score = results[type.id] || 0;
+        if (score > maxScore) {
+          maxScore = score;
+          mainType = type;
+        }
+      }
+    }
+
+    // 推荐调理方向
+    const recommendType = mainType.id === 'pinghe' ? constitutionTypes[1] : mainType;
+    
+    // 体质分组
+    const groups = {
+      'A': { name: 'A型', desc: '气虚质或阳虚质', ids: ['qixu', 'yangxu'] },
+      'B': { name: 'B型', desc: '气郁质或血瘀质', ids: ['qiyu', 'xueyu'] },
+      'C': { name: 'C型', desc: '痰湿质', ids: ['tanshi'] },
+      'D': { name: 'D型', desc: '阴虚质或湿热质', ids: ['yinxu', 'shire'] }
+    };
+    
+    // 确定用户体质分组
+    let userGroup = groups.A;
+    for (const groupId in groups) {
+      if (groups[groupId].ids.includes(recommendType.id)) {
+        userGroup = groups[groupId];
+        break;
+      }
+    }
+
+    // 更新结果UI
+    document.getElementById('userName').textContent = name;
+    document.getElementById('constitutionType').textContent = mainType.name;
+    document.getElementById('constitutionDesc').textContent = mainType.desc;
+    document.getElementById('mainScore').textContent = `${results[mainType.id] || 0}分`;
+    document.getElementById('recommendType').textContent = recommendType.name;
+    document.getElementById('constitutionTypeGroup').textContent = 
+      `您的体质属于：${userGroup.name}（${userGroup.desc}）`;
+
+    // 推荐方案
+    const herbRecommendations = {
+      'A': {
+        tea: { name: '补虚饮', ingredients: ['黄芪3g', '党参6g', '茯苓6g', '炒山药6g', '大枣2颗'] },
+        bath: { name: '舒展药浴包', ingredients: ['黄芪9g', '桂枝9g', '吴茱萸9g', '熟地9g', '紫苏9g', '白芍9g'] }
+      },
+      'B': {
+        tea: { name: '理中饮', ingredients: ['玫瑰花6g', '山楂6g', '柴胡3g', '陈皮3g', '香附6g'] },
+        bath: { name: '舒展药浴包', ingredients: ['黄芪9g', '桂枝9g', '吴茱萸9g', '熟地9g', '紫苏9g', '白芍9g'] }
+      },
+      'C': {
+        tea: { name: '化痰饮', ingredients: ['陈皮3g', '茯苓6g', '荷叶6g', '山楂3g', '莱菔子6g'] },
+        bath: { name: '轻盈药浴包', ingredients: ['川芎9g', '细辛9g', '香薷9g', '威灵仙9g', '透骨草9g', '桑枝9g'] }
+      },
+      'D': {
+        tea: { name: '清心饮', ingredients: ['炒决明子6g', '玉米须6g', '绞股蓝3g', '冬瓜皮3g', '枸杞6g'] },
+        bath: { name: '轻盈药浴包', ingredients: ['川芎9g', '细辛9g', '香薷9g', '威灵仙9g', '透骨草9g', '桑枝9g'] }
+      }
+    };
+    
+    const herbs = herbRecommendations[userGroup.id] || herbRecommendations.A;
+    
+    document.getElementById('teaName').textContent = herbs.tea.name;
+    document.getElementById('teaIngredients').innerHTML = 
+      herbs.tea.ingredients.map(i => `<div class="herb-item">${i}</div>`).join('');
+    
+    document.getElementById('bathName').textContent = herbs.bath.name;
+    document.getElementById('bathIngredients').innerHTML = 
+      herbs.bath.ingredients.map(i => `<div class="herb-item">${i}</div>`).join('');
+
+    // 显示结果区域
+    document.getElementById('resultSection').classList.remove('hidden');
+    document.getElementById('initialMessage').classList.add('hidden');
+    
+    // 绘制简单图表
+    drawSimpleChart(results, constitutionTypes);
+  }
+
+  // 绘制简单图表
+  function drawSimpleChart(results, types) {
+    const canvas = document.getElementById('constitutionChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // 清除旧图表
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 设置图表尺寸
+    const width = canvas.width;
+    const height = canvas.height;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) * 0.4;
+    
+    // 绘制网格线
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    
+    // 绘制雷达图网格
+    const axes = types.length;
+    for (let i = 0; i < axes; i++) {
+      const angle = (Math.PI * 2 * i) / axes;
+      const x = centerX + Math.sin(angle) * radius;
+      const y = centerY - Math.cos(angle) * radius;
+      
+      // 轴线
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      
+      // 标签
+      ctx.fillStyle = '#374151';
+      ctx.font = '12px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      const label = types[i].name;
+      const labelX = centerX + Math.sin(angle) * (radius + 20);
+      const labelY = centerY - Math.cos(angle) * (radius + 20);
+      ctx.fillText(label, labelX, labelY);
+    }
+    
+    // 绘制数据点
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+    ctx.strokeStyle = '#3B82F6';
+    ctx.lineWidth = 2;
+    
+    for (let i = 0; i < axes; i++) {
+      const score = results[types[i].id] || 0;
+      const value = score / 100;
+      
+      const angle = (Math.PI * 2 * i) / axes;
+      const pointRadius = radius * value;
+      
+      const x = centerX + Math.sin(angle) * pointRadius;
+      const y = centerY - Math.cos(angle) * pointRadius;
+      
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+      
+      // 绘制数据点
+      ctx.fillStyle = '#3B82F6';
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    
+    // 绘制刻度
+    ctx.strokeStyle = '#d1d5db';
+    ctx.lineWidth = 0.5;
+    for (let level = 0.2; level <= 1; level += 0.2) {
+      ctx.beginPath();
+      const levelRadius = radius * level;
+      
+      for (let i = 0; i <= axes; i++) {
+        const angle = (Math.PI * 2 * i) / axes;
+        const x = centerX + Math.sin(angle) * levelRadius;
+        const y = centerY - Math.cos(angle) * levelRadius;
+        
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      
+      ctx.closePath();
+      ctx.stroke();
+      
+      // 绘制刻度值
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '10px Inter, sans-serif';
+      ctx.fillText(`${Math.round(level * 100)}`, centerX, centerY - levelRadius - 5);
+    }
+  }
+});
+</script>
+</body>
+</html>
